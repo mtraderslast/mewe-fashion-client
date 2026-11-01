@@ -4,11 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 
 
-const BRAND_CONFIG = {
-    logoText: "MEWE Fashion",
-    cartItemCount: 3,
-};
-
 const THEME = {
     navBg: "bg-slate-50/95 backdrop-blur-md border-b border-slate-200/80",
     textPrimary: "text-[#55A9A0]",
@@ -40,11 +35,15 @@ export default function Navbar() {
                 <div className="flex items-center justify-between h-16 sm:h-18">
 
                     <div className="flex-shrink-0 flex items-center">
-                        <Link href="/" className="flex items-center gap-2 group">
-                            <span className={`text-2xl font-black tracking-tight ${THEME.textPrimary}`}>
-                                {BRAND_CONFIG.logoText}
-                                <span className={THEME.brandAccent}>.</span>
-                            </span>
+                        <Link href="/" className="inline-block">
+                            <div className="flex flex-col">
+                                <span className="text-3xl font-black leading-none tracking-[0.12em] text-gray-700">
+                                    MEWE
+                                </span>
+                                <span className="mt-1.5 text-[11px] font-bold tracking-[0.48em] text-[#55A9A0]">
+                                    FASHION
+                                </span>
+                            </div>
                         </Link>
                     </div>
 
