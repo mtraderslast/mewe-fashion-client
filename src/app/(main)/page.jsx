@@ -1,4 +1,6 @@
 import HeroBanner from "@/components/HeroBanner"
+import HomePageProduct from "@/components/HomePageProduct"
+import OfferBannerSection from "@/components/OfferBannerSection"
 import PopularCategories from "@/components/PopularCategories"
 
 function Home() {
@@ -6,6 +8,8 @@ function Home() {
         <div>
             <HeroBanner />
             <PopularCategories />
+            <HomePageProduct />
+            <OfferBannerSection />
         </div>
     )
 }
