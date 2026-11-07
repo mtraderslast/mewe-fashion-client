@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from './ProductCard';
+import { PRODUCT_LIST_PATH } from '@/lib/productQuery';
 
 const THEME = {
     sectionBg: "bg-white py-8",
@@ -19,7 +20,7 @@ const THEME = {
     arrowBtn: "w-9 h-9 rounded-full bg-white text-slate-700 shadow-md border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-all disabled:opacity-40 disabled:cursor-not-allowed",
 };
 
-export default function ProductSliderSection({ title = "Mens Fashion", products = [] }) {
+export default function ProductSliderSection({ title = "Mens Fashion", products = [], viewAllHref = PRODUCT_LIST_PATH }) {
     const [scrollPosition, setScrollPosition] = useState(0);
 
     const handleScroll = (direction) => {
@@ -39,7 +40,7 @@ export default function ProductSliderSection({ title = "Mens Fashion", products 
                     <h2 className={THEME.headingText}>{title}</h2>
 
                     <div className="flex items-center gap-3">
-                        <Link href={`/category/${title.toLowerCase()}`} className={THEME.viewAllText}>
+                        <Link href={viewAllHref} className={THEME.viewAllText}>
                             View All
                         </Link>
                         <div className="hidden sm:flex items-center gap-1.5">
@@ -67,7 +68,7 @@ export default function ProductSliderSection({ title = "Mens Fashion", products 
                     className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none pb-4 pt-1 snap-x snap-mandatory scroll-smooth"
                 >
                     {products.map((product) => (
-                        <ProductCard key={product.id} product={product} THEME={THEME} />
+                        <ProductCard key={product.slug} product={product} THEME={THEME} />
                     ))}
                 </div>
 

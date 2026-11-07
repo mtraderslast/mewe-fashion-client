@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { buildProductHref } from '@/lib/productQuery';
 
 
 const SECTION_CONFIG = {
@@ -13,62 +14,108 @@ const SECTION_CONFIG = {
     nextButtonAria: 'Next categories',
 };
 
+
 const CATEGORIES = [
     {
         id: 1,
-        name: 'Smart Watches',
+        name: 'Mens Shirt',
         image: '/categories/smart-watches.png',
-        href: '/category/smart-watches',
+        category: 'Mens',
+        subCategory: 'Shirt',
     },
     {
         id: 2,
-        name: 'In-Ear/Earbuds',
+        name: 'Mens Pant',
         image: '/categories/earbuds.png',
-        href: '/category/earbuds',
+        category: 'Mens',
+        subCategory: 'Pant',
     },
     {
         id: 3,
-        name: 'Mens Chino Pant',
+        name: 'Mens Shoes',
         image: '/categories/mens-chino-pant.png',
-        href: '/category/mens-chino-pant',
+        category: 'Mens',
+        subCategory: 'Shoes',
     },
     {
         id: 4,
-        name: 'Hair Dryers',
+        name: 'Watch',
         image: '/categories/hair-dryers.png',
-        href: '/category/hair-dryers',
+        category: 'Mens',
+        subCategory: 'Watch',
     },
     {
         id: 5,
-        name: "Men's Panjabi",
+        name: 'Perfume',
         image: '/categories/mens-panjabi.png',
-        href: '/category/mens-panjabi',
+        category: 'Mens',
+        subCategory: 'Perfume',
     },
     {
         id: 6,
-        name: "Women's Bottom Wear",
+        name: "Women's Dress",
         image: '/categories/womens-bottom-wear.png',
-        href: '/category/womens-bottom-wear',
+        category: 'Womens',
+        subCategory: 'Dress',
     },
     {
         id: 7,
-        name: 'Mens Casual Shirt',
+        name: 'Burqa',
         image: '/categories/mens-casual-shirt.png',
-        href: '/category/mens-casual-shirt',
+        category: 'Womens',
+        subCategory: 'Burqa',
     },
     {
         id: 8,
-        name: 'Footwear',
+        name: 'Hijab',
         image: '/categories/footwear.png',
-        href: '/category/footwear',
+        category: 'Womens',
+        subCategory: 'Hijab',
     },
     {
         id: 9,
-        name: "Men's Polo",
+        name: 'Facial Wash',
         image: '/categories/mens-polo.png',
-        href: '/category/mens-polo',
+        category: 'Womens',
+        subCategory: 'Facial Wash',
+    },
+    {
+        id: 10,
+        name: 'Moisturizer',
+        image: '/categories/mens-polo.png',
+        category: 'Womens',
+        subCategory: 'Moisturizer',
+    },
+    {
+        id: 11,
+        name: 'Kids Shirt',
+        image: '/categories/mens-polo.png',
+        category: 'Kids',
+        subCategory: 'kids-shirt',
+    },
+    {
+        id: 12,
+        name: 'Kids Pant',
+        image: '/categories/mens-polo.png',
+        category: 'Kids',
+        subCategory: 'kids-pant',
+    },
+    {
+        id: 13,
+        name: 'Kids Shoes',
+        image: '/categories/mens-polo.png',
+        category: 'Kids',
+        subCategory: 'kids-shoes',
+    },
+    {
+        id: 14,
+        name: 'Baby Cream',
+        image: '/categories/mens-polo.png',
+        category: 'Kids',
+        subCategory: 'Baby Cream',
     },
 ];
+
 
 export default function PopularCategories() {
     const sliderRef = useRef(null);
@@ -154,7 +201,10 @@ export default function PopularCategories() {
                 >
                     {CATEGORIES.map((category) => (
                         <Link
-                            href={category.href}
+                            href={buildProductHref({
+                                category: category.category,
+                                subCategory: category.subCategory,
+                            })}
                             key={category.id}
                             className="group flex w-[132px] shrink-0 snap-start flex-col items-center text-center sm:w-[148px] lg:w-[152px] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600"
                         >

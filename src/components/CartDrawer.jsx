@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight, Loader2 } from "lucide-react";
+import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/lib/store/useCartStore";
-import { fetchProductDetails } from "@/lib/action/products";
 import { getUnitPricing, findMatchingVariant } from "@/lib/pricing";
+import { allProducts } from "@/data/product";
 
 const CART_THEME = {
     overlayBg: "bg-slate-950/60 backdrop-blur-xs",
@@ -20,7 +20,6 @@ const CART_THEME = {
 
     accentColor: "text-teal-600",
     accentBg: "bg-teal-600 hover:bg-teal-700 text-white",
-    secondaryButton: "bg-slate-100 hover:bg-slate-200 text-slate-800",
     borderLight: "border-slate-200",
 
     cardBg: "bg-white border border-slate-200 shadow-2xs",
@@ -34,24 +33,24 @@ const CART_TEXT = {
     emptyTitle: "Your Bag is Empty",
     emptySubtitle: "Browse our store to add your favorite products",
     startShopping: "Start Shopping",
-    loadingText: "Loading cart...",
     subtotalLabel: "Subtotal",
+    shippingLabel: "Shipping",
     shippingNote: "Calculated at checkout",
     checkoutBtn: "Proceed to Checkout",
     continueShopping: "Continue Shopping",
 };
 
+const getProductBySlug = (slug) => allProducts.find((product) => product.slug === slug);
+
 export default function CartDrawer() {
     const [mounted, setMounted] = useState(false);
-    const [productCatalog, setProductCatalog] = useState({});
-    const [isLoadingData, setIsLoadingData] = useState(false);
 
     const items = useCartStore((state) => state.items);
     const isOpen = useCartStore((state) => state.isOpen);
     const closeCart = useCartStore((state) => state.closeCart);
     const updateQuantity = useCartStore((state) => state.updateQuantity);
     const removeFromCart = useCartStore((state) => state.removeFromCart);
-    const getTotalItems = useCartStore((state) => state.getTotalItems);
+    const totalCount = useCartStore((state) => state.getTotalItems());
 
     useEffect(() => {
         setMounted(true);
@@ -68,60 +67,25 @@ export default function CartDrawer() {
         };
     }, [isOpen]);
 
-    useEffect(() => {
-        const fetchCartProducts = async () => {
-            const missingSlugs = items
-                .map((item) => item.slug)
-                .filter((slug) => !productCatalog[slug]);
-
-            if (missingSlugs.length === 0) return;
-
-            setIsLoadingData(true);
-            try {
-                const newProducts = {};
-                await Promise.all(
-                    missingSlugs.map(async (slug) => {
-                        const res = await fetchProductDetails(slug);
-                        const productData = res?.data?.data || res?.data || res;
-                        if (productData) {
-                            newProducts[slug] = productData;
-                        }
-                    })
-                );
-
-                setProductCatalog((prev) => ({ ...prev, ...newProducts }));
-            } catch (error) {
-                console.error("Cart items fetch error:", error);
-            } finally {
-                setIsLoadingData(false);
-            }
-        };
-
-        fetchCartProducts();
-    }, [items, productCatalog]);
-
     const getItemFinalPrice = (cartItem, product) => {
         if (!product) return 0;
-
         const matchedVariant = findMatchingVariant(product, cartItem.selectedAttributes);
         return getUnitPricing(product, matchedVariant).finalPrice;
     };
 
     const subtotal = useMemo(() => {
         return items.reduce((total, cartItem) => {
-            const product = productCatalog[cartItem.slug];
+            const product = getProductBySlug(cartItem.slug);
             const finalPrice = getItemFinalPrice(cartItem, product);
-            return total + (finalPrice * cartItem.quantity);
+            return total + finalPrice * cartItem.quantity;
         }, 0);
-    }, [items, productCatalog]);
+    }, [items]);
 
     if (!mounted) return null;
 
-    const totalCount = getTotalItems();
-
     return (
         <div
-            className={`fixed inset-0 z-50 transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+            className={`fixed inset-0 z-[70] transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
             aria-labelledby="slide-over-title"
             role="dialog"
             aria-modal="true"
@@ -157,14 +121,9 @@ export default function CartDrawer() {
                                     {CART_TEXT.startShopping}
                                 </button>
                             </div>
-                        ) : isLoadingData && Object.keys(productCatalog).length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center py-12 gap-3">
-                                <Loader2 className={`w-8 h-8 animate-spin ${CART_THEME.accentColor}`} />
-                                <p className={`text-sm font-medium ${CART_THEME.subText}`}>{CART_TEXT.loadingText}</p>
-                            </div>
                         ) : (
                             items.map((cartItem) => {
-                                const product = productCatalog[cartItem.slug];
+                                const product = getProductBySlug(cartItem.slug);
                                 if (!product) return null;
 
                                 const variantEntries = Object.entries(cartItem.selectedAttributes || {});
@@ -172,21 +131,21 @@ export default function CartDrawer() {
 
                                 return (
                                     <div key={cartItem.cartItemId} className={`flex gap-3.5 p-3 rounded-2xl ${CART_THEME.cardBg}`}>
-                                        <div className="relative w-20 h-24 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
+                                        <Link href={`/product/${product.slug}`} onClick={closeCart} className="relative w-20 h-24 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
                                             <img
                                                 src={product.images?.[0] || "/placeholder.jpg"}
-                                                alt={product.titleEn || product.titleBn || "Product"}
+                                                alt={product.title || "Product"}
                                                 className="w-full h-full object-cover object-center"
                                             />
-                                        </div>
+                                        </Link>
 
                                         <div className="flex-1 flex flex-col justify-between">
                                             <div className="space-y-1">
                                                 <div className="flex items-start justify-between gap-2">
-                                                    <div>
-                                                        <h3 className={`text-xs sm:text-sm font-semibold line-clamp-1 ${CART_THEME.primaryText}`}>{product.titleEn || product.titleBn}</h3>
-                                                    </div>
-                                                    <button type="button" onClick={(e) => { e.preventDefault(); removeFromCart(cartItem.cartItemId); }} className={`transition-colors p-1 ${CART_THEME.deleteIcon}`}>
+                                                    <Link href={`/product/${product.slug}`} onClick={closeCart}>
+                                                        <h3 className={`text-xs sm:text-sm font-semibold line-clamp-1 ${CART_THEME.primaryText}`}>{product.title}</h3>
+                                                    </Link>
+                                                    <button type="button" onClick={() => removeFromCart(cartItem.cartItemId)} className={`transition-colors p-1 ${CART_THEME.deleteIcon}`}>
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
@@ -202,21 +161,21 @@ export default function CartDrawer() {
 
                                             <div className="flex items-center justify-between pt-2">
                                                 <div className="flex items-center border border-slate-200 rounded-lg bg-slate-50">
-                                                    <button type="button" onClick={(e) => { e.preventDefault(); updateQuantity(cartItem.cartItemId, cartItem.quantity - 1); }} className="p-1 hover:bg-slate-200 text-slate-700 rounded-l-lg transition-colors">
+                                                    <button type="button" onClick={() => updateQuantity(cartItem.cartItemId, cartItem.quantity - 1)} className="p-1 hover:bg-slate-200 text-slate-700 rounded-l-lg transition-colors">
                                                         <Minus className="w-3 h-3" />
                                                     </button>
                                                     <span className={`w-7 text-center text-xs font-semibold ${CART_THEME.primaryText}`}>{cartItem.quantity}</span>
-                                                    <button type="button" onClick={(e) => { e.preventDefault(); updateQuantity(cartItem.cartItemId, cartItem.quantity + 1); }} className="p-1 hover:bg-slate-200 text-slate-700 rounded-r-lg transition-colors">
+                                                    <button type="button" onClick={() => updateQuantity(cartItem.cartItemId, cartItem.quantity + 1)} className="p-1 hover:bg-slate-200 text-slate-700 rounded-r-lg transition-colors">
                                                         <Plus className="w-3 h-3" />
                                                     </button>
                                                 </div>
 
                                                 <div className="text-right flex flex-col">
                                                     <span className={`text-sm font-bold ${CART_THEME.primaryText}`}>
-                                                        Tk {(finalPrice * cartItem.quantity).toLocaleString()}
+                                                        ৳{(finalPrice * cartItem.quantity).toLocaleString()}
                                                     </span>
                                                     <span className={`text-[10px] ${CART_THEME.subText}`}>
-                                                        Tk {finalPrice.toLocaleString()} x {cartItem.quantity}
+                                                        ৳{finalPrice.toLocaleString()} x {cartItem.quantity}
                                                     </span>
                                                 </div>
                                             </div>
@@ -233,11 +192,11 @@ export default function CartDrawer() {
                                 <div className="flex items-center justify-between text-sm">
                                     <span className={CART_THEME.subText}>{CART_TEXT.subtotalLabel}</span>
                                     <span className={`text-base font-bold ${CART_THEME.primaryText}`}>
-                                        Tk {subtotal.toLocaleString()}
+                                        ৳{subtotal.toLocaleString()}
                                     </span>
                                 </div>
                                 <div className={`flex items-center justify-between text-xs ${CART_THEME.subText}`}>
-                                    <span>Shipping</span>
+                                    <span>{CART_TEXT.shippingLabel}</span>
                                     <span>{CART_TEXT.shippingNote}</span>
                                 </div>
                             </div>
