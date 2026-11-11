@@ -1,3 +1,4 @@
+export const instant = false;
 
 export const metadata = {
     title: "Auth - Login",
