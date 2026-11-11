@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Package, Sparkles, Tag, Layers } from "lucide-react";
 import { fetchAllProducts, fetchCategorySummary } from "@/lib/action/products";
 import { formatSubCategory } from "@/data/categories";
+import { formatPrice } from "@/lib/pricing";
 
 const THEME = {
     grid: "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4",
@@ -140,7 +141,7 @@ export default function DashboardHomePage() {
                                         <td className={THEME.tableCell}>
                                             {product.category} · {formatSubCategory(product.subCategory)}
                                         </td>
-                                        <td className={THEME.tableCell}>৳{Number(product.discountPrice ?? product.price ?? 0).toLocaleString()}</td>
+                                        <td className={THEME.tableCell}>{formatPrice(product.discountPrice ?? product.price ?? 0)}</td>
                                         <td className={THEME.tableCell}>{product.stock ?? 0}</td>
                                         <td className={THEME.tableCell}>
                                             <span className={product.status === "draft" ? THEME.badgeDraft : THEME.badgeActive}>

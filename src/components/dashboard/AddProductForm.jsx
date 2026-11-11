@@ -1,19 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import Swal from "sweetalert2";
-import { createProduct } from "@/lib/action/products";
+import { createProduct, updateProduct } from "@/lib/action/products";
 import { slugify } from "@/lib/slugify";
 import {
     CATEGORY_TREE,
     CATEGORY_VALUES,
-    SIZE_SUGGESTIONS,
     formatSubCategory,
-    getVariantFields,
 } from "@/data/categories";
+import VariantBuilder from "./VariantBuilder";
 
 const THEME = {
     grid: "grid grid-cols-1 xl:grid-cols-12 gap-6",
@@ -32,7 +31,6 @@ const THEME = {
     submitBtn: "w-full rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 text-sm shadow-md shadow-teal-900/10 disabled:opacity-50",
     draftBtn: "w-full rounded-xl border border-[#E4DED4] bg-white hover:bg-[#F4F1EC] text-[#1B2A26] font-semibold py-3 text-sm",
     preview: "h-16 w-16 rounded-lg object-cover border border-[#E4DED4] bg-[#F4F1EC]",
-    variantBox: "rounded-xl border border-[#E4DED4] bg-[#FBF9F6] p-4 space-y-3",
 };
 
 const TEXT = {
@@ -61,13 +59,14 @@ const TEXT = {
     tagsPlaceholder: "cotton, festive, panjabi",
     tagsHint: "Comma separated. Max 20 tags.",
     pricingTitle: "Pricing & stock",
-    pricingHint: "Discount must stay below the regular price.",
-    price: "Price (৳)",
+    pricingHint: "Discount must stay below the regular price. Variant stock is counted separately.",
+    price: "Price ($)",
     priceRequired: "Price is required",
     priceInvalid: "Price must be greater than 0",
-    discountPrice: "Discount price (৳)",
+    discountPrice: "Discount price ($)",
     discountInvalid: "Discount must be less than price",
-    stock: "Stock",
+    stock: "Base stock",
+    stockHint: "Used when there are no variants. With variants, total stock comes from the table.",
     stockInvalid: "Stock cannot be negative",
     mediaTitle: "Images",
     mediaHint: "Paste image URLs. Maximum 10.",
@@ -75,12 +74,7 @@ const TEXT = {
     imageInvalid: "Enter a valid image URL",
     addImage: "Add image",
     variantsTitle: "Variants",
-    variantsHint: "Add size, color, volume or scent combinations.",
-    addVariant: "Add variant",
-    variantPrice: "Variant price",
-    variantDiscount: "Variant discount",
-    variantStock: "Variant stock",
-    sku: "SKU",
+    variantsHint: "Build options in groups. Combinations appear automatically.",
     visibilityTitle: "Visibility",
     featured: "Featured product",
     discountFlag: "Show in discount section",
@@ -89,27 +83,61 @@ const TEXT = {
     active: "Active",
     draft: "Draft",
     publish: "Publish product",
+    saveChanges: "Save changes",
     saveDraft: "Save as draft",
     publishing: "Saving...",
     successTitle: "Product created",
-    successText: "The listing is now available in the catalog.",
+    successText: "The form is cleared. Add another product, or open the catalog.",
+    editSuccessTitle: "Product updated",
+    editSuccessText: "The listing is saved. Open the catalog, or keep editing.",
+    addAnother: "Add another",
+    viewCatalog: "View catalog",
+    keepEditing: "Keep editing",
     errorTitle: "Could not create product",
+    editErrorTitle: "Could not update product",
     errorDefault: "Please check the form and try again.",
 };
+
+const productToFormValues = (product) => ({
+    title: product.title || "",
+    slug: product.slug || "",
+    description: product.description || "",
+    category: product.category || "",
+    subCategory: product.subCategory || "",
+    brand: product.brand || "",
+    tags: (product.tags || []).join(", "),
+    price: product.price ?? "",
+    discountPrice: product.discountPrice ?? "",
+    stock: product.stock ?? 0,
+    images: (product.images?.length ? product.images : [""]).map((url) => ({ url })),
+    variants: product.variants || [],
+    isFeatured: Boolean(product.isFeatured),
+    showInDiscount: Boolean(product.showInDiscount),
+    showSimilar: product.showSimilar !== false,
+    status: product.status || "active",
+});
 
 const URL_PATTERN = /^https?:\/\/.+/i;
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-const emptyVariant = (price = "") => ({
-    size: "",
-    color: "",
-    volume: "",
-    scent: "",
-    price,
+const DEFAULT_VALUES = {
+    title: "",
+    slug: "",
+    description: "",
+    category: "",
+    subCategory: "",
+    brand: "",
+    tags: "",
+    price: "",
     discountPrice: "",
     stock: 0,
-    sku: "",
-});
+    images: [{ url: "" }],
+    variants: [],
+    isFeatured: false,
+    showInDiscount: false,
+    showSimilar: true,
+    status: "active",
+};
 
 const toNumber = (value) => {
     if (value === "" || value === null || value === undefined) return null;
@@ -120,36 +148,22 @@ const toNumber = (value) => {
 const getApiMessage = (error) =>
     error?.response?.data?.message || error?.message || TEXT.errorDefault;
 
-export default function AddProductForm() {
+export default function AddProductForm({ product } = {}) {
     const router = useRouter();
-    const [slugLocked, setSlugLocked] = useState(false);
+    const isEdit = Boolean(product?._id);
+    const [slugLocked, setSlugLocked] = useState(isEdit);
+    const [builderKey, setBuilderKey] = useState(0);
 
     const {
         register,
         handleSubmit,
         watch,
         setValue,
+        reset,
         control,
         formState: { errors, isSubmitting },
     } = useForm({
-        defaultValues: {
-            title: "",
-            slug: "",
-            description: "",
-            category: "",
-            subCategory: "",
-            brand: "",
-            tags: "",
-            price: "",
-            discountPrice: "",
-            stock: 0,
-            images: [{ url: "" }],
-            variants: [],
-            isFeatured: false,
-            showInDiscount: false,
-            showSimilar: true,
-            status: "active",
-        },
+        defaultValues: isEdit ? productToFormValues(product) : DEFAULT_VALUES,
     });
 
     const { fields: imageFields, append: appendImage, remove: removeImage } = useFieldArray({
@@ -157,19 +171,24 @@ export default function AddProductForm() {
         name: "images",
     });
 
-    const { fields: variantFields, append: appendVariant, remove: removeVariant, replace: replaceVariants } = useFieldArray({
-        control,
-        name: "variants",
-    });
-
     const title = watch("title");
     const category = watch("category");
     const subCategory = watch("subCategory");
     const price = watch("price");
     const images = watch("images");
-    const variantFieldsForSub = getVariantFields(subCategory);
+    const variantsWatch = watch("variants");
+    const hasVariants = (variantsWatch || []).length > 0;
     const subCategories = CATEGORY_TREE[category] || [];
-    const sizeSuggestions = SIZE_SUGGESTIONS[subCategory] || [];
+
+    const handleVariantsChange = useCallback((variants) => {
+        setValue("variants", variants);
+    }, [setValue]);
+
+    const resetForm = useCallback(() => {
+        reset(DEFAULT_VALUES);
+        setSlugLocked(false);
+        setBuilderKey((key) => key + 1);
+    }, [reset]);
 
     useEffect(() => {
         if (!slugLocked) {
@@ -177,15 +196,24 @@ export default function AddProductForm() {
         }
     }, [title, slugLocked, setValue]);
 
-    useEffect(() => {
-        setValue("subCategory", "");
-        replaceVariants([]);
-    }, [category, setValue]);
+    const categoryRegister = register("category", { required: TEXT.categoryRequired });
 
     const onSubmit = async (values, statusOverride) => {
         const parsedPrice = toNumber(values.price);
         const parsedDiscount = toNumber(values.discountPrice);
         const parsedStock = toNumber(values.stock) ?? 0;
+        const variants = (values.variants || [])
+            .filter((variant) => variant.size || variant.color || variant.volume || variant.scent)
+            .map((variant) => ({
+                size: variant.size?.trim() || undefined,
+                color: variant.color?.trim() || undefined,
+                volume: variant.volume?.trim() || undefined,
+                scent: variant.scent?.trim() || undefined,
+                price: toNumber(variant.price) ?? parsedPrice,
+                discountPrice: toNumber(variant.discountPrice),
+                stock: toNumber(variant.stock) ?? 0,
+                sku: variant.sku?.trim() || undefined,
+            }));
 
         const payload = {
             title: values.title.trim(),
@@ -196,18 +224,11 @@ export default function AddProductForm() {
             brand: values.brand.trim() || undefined,
             price: parsedPrice,
             discountPrice: parsedDiscount,
-            stock: parsedStock,
-            images: (values.images || []).map((item) => (item.url || "").trim()).filter(Boolean),
-            variants: (values.variants || []).map((variant) => ({
-                size: variant.size?.trim() || undefined,
-                color: variant.color?.trim() || undefined,
-                volume: variant.volume?.trim() || undefined,
-                scent: variant.scent?.trim() || undefined,
-                price: toNumber(variant.price) ?? parsedPrice,
-                discountPrice: toNumber(variant.discountPrice),
-                stock: toNumber(variant.stock) ?? 0,
-                sku: variant.sku?.trim() || undefined,
-            })),
+            stock: variants.length
+                ? variants.reduce((sum, variant) => sum + (variant.stock || 0), 0)
+                : parsedStock,
+            images: (values.images || []).map((item) => item.url?.trim()).filter(Boolean),
+            variants,
             isFeatured: Boolean(values.isFeatured),
             showInDiscount: Boolean(values.showInDiscount),
             showSimilar: Boolean(values.showSimilar),
@@ -220,18 +241,43 @@ export default function AddProductForm() {
         };
 
         try {
+            if (isEdit) {
+                await updateProduct(product._id, payload);
+                const result = await Swal.fire({
+                    icon: "success",
+                    title: TEXT.editSuccessTitle,
+                    text: TEXT.editSuccessText,
+                    confirmButtonColor: "#0d9488",
+                    confirmButtonText: TEXT.keepEditing,
+                    showCancelButton: true,
+                    cancelButtonText: TEXT.viewCatalog,
+                });
+
+                if (result.dismiss === Swal.DismissReason.cancel) {
+                    router.push("/dashboard/products");
+                }
+                return;
+            }
+
             await createProduct(payload);
-            await Swal.fire({
+            resetForm();
+            const result = await Swal.fire({
                 icon: "success",
                 title: TEXT.successTitle,
                 text: TEXT.successText,
                 confirmButtonColor: "#0d9488",
+                confirmButtonText: TEXT.addAnother,
+                showCancelButton: true,
+                cancelButtonText: TEXT.viewCatalog,
             });
-            router.push("/dashboard/products");
+
+            if (result.dismiss === Swal.DismissReason.cancel) {
+                router.push("/dashboard/products");
+            }
         } catch (error) {
             Swal.fire({
                 icon: "error",
-                title: TEXT.errorTitle,
+                title: isEdit ? TEXT.editErrorTitle : TEXT.errorTitle,
                 text: getApiMessage(error),
                 confirmButtonColor: "#0d9488",
             });
@@ -333,14 +379,17 @@ export default function AddProductForm() {
                             <label className={THEME.label}>{TEXT.stock}</label>
                             <input
                                 type="number"
+                                disabled={hasVariants}
                                 className={fieldClass(errors.stock)}
                                 {...register("stock", {
                                     validate: (value) => {
+                                        if (hasVariants) return true;
                                         const n = toNumber(value);
                                         return (n !== null && n >= 0 && Number.isInteger(n)) || TEXT.stockInvalid;
                                     },
                                 })}
                             />
+                            <p className={THEME.cardHint}>{TEXT.stockHint}</p>
                             {errors.stock && <p className={THEME.error}>{errors.stock.message}</p>}
                         </div>
                     </div>
@@ -386,87 +435,16 @@ export default function AddProductForm() {
                 </section>
 
                 <section className={THEME.card}>
-                    <div className="flex items-start justify-between gap-3">
-                        <div>
-                            <h2 className={THEME.cardTitle}>{TEXT.variantsTitle}</h2>
-                            <p className={THEME.cardHint}>{TEXT.variantsHint}</p>
-                        </div>
-                        <button
-                            type="button"
-                            className={THEME.ghostBtn}
-                            onClick={() => appendVariant(emptyVariant(price))}
-                            disabled={!subCategory}
-                        >
-                            <Plus size={14} />
-                            {TEXT.addVariant}
-                        </button>
-                    </div>
-
-                    <div className="mt-5 space-y-4">
-                        {variantFields.map((field, index) => (
-                            <div key={field.id} className={THEME.variantBox}>
-                                <div className="flex items-center justify-between">
-                                    <p className="text-xs font-semibold text-[#3F4A46]">Variant {index + 1}</p>
-                                    <button type="button" className={THEME.dangerBtn} onClick={() => removeVariant(index)}>
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                                    {variantFieldsForSub.includes("size") && (
-                                        <div>
-                                            <label className={THEME.label}>Size</label>
-                                            <input
-                                                list={`size-${index}`}
-                                                className={THEME.input}
-                                                {...register(`variants.${index}.size`, {
-                                                    required: variantFieldsForSub.includes("size"),
-                                                })}
-                                            />
-                                            <datalist id={`size-${index}`}>
-                                                {sizeSuggestions.map((size) => (
-                                                    <option key={size} value={size} />
-                                                ))}
-                                            </datalist>
-                                        </div>
-                                    )}
-                                    {variantFieldsForSub.includes("color") && (
-                                        <div>
-                                            <label className={THEME.label}>Color</label>
-                                            <input className={THEME.input} {...register(`variants.${index}.color`, { required: true })} />
-                                        </div>
-                                    )}
-                                    {variantFieldsForSub.includes("volume") && (
-                                        <div>
-                                            <label className={THEME.label}>Volume</label>
-                                            <input className={THEME.input} {...register(`variants.${index}.volume`, { required: true })} />
-                                        </div>
-                                    )}
-                                    {variantFieldsForSub.includes("scent") && (
-                                        <div>
-                                            <label className={THEME.label}>Scent</label>
-                                            <input className={THEME.input} {...register(`variants.${index}.scent`, { required: true })} />
-                                        </div>
-                                    )}
-                                    <div>
-                                        <label className={THEME.label}>{TEXT.variantPrice}</label>
-                                        <input type="number" step="0.01" className={THEME.input} {...register(`variants.${index}.price`)} />
-                                    </div>
-                                    <div>
-                                        <label className={THEME.label}>{TEXT.variantDiscount}</label>
-                                        <input type="number" step="0.01" className={THEME.input} {...register(`variants.${index}.discountPrice`)} />
-                                    </div>
-                                    <div>
-                                        <label className={THEME.label}>{TEXT.variantStock}</label>
-                                        <input type="number" className={THEME.input} {...register(`variants.${index}.stock`)} />
-                                    </div>
-                                    <div>
-                                        <label className={THEME.label}>{TEXT.sku}</label>
-                                        <input className={THEME.input} {...register(`variants.${index}.sku`)} />
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+                    <h2 className={THEME.cardTitle}>{TEXT.variantsTitle}</h2>
+                    <p className={THEME.cardHint}>{TEXT.variantsHint}</p>
+                    <div className="mt-5">
+                        <VariantBuilder
+                            key={`${builderKey}-${subCategory}`}
+                            subCategory={subCategory}
+                            basePrice={price}
+                            onChange={handleVariantsChange}
+                            initialVariants={subCategory === product?.subCategory ? (product?.variants || []) : []}
+                        />
                     </div>
                 </section>
             </div>
@@ -479,7 +457,14 @@ export default function AddProductForm() {
                     <div className="mt-5 space-y-4">
                         <div>
                             <label className={THEME.label}>{TEXT.category}</label>
-                            <select className={fieldClass(errors.category)} {...register("category", { required: TEXT.categoryRequired })}>
+                            <select
+                                className={fieldClass(errors.category)}
+                                {...categoryRegister}
+                                onChange={(event) => {
+                                    categoryRegister.onChange(event);
+                                    setValue("subCategory", "");
+                                }}
+                            >
                                 <option value="">Select category</option>
                                 {CATEGORY_VALUES.map((item) => (
                                     <option key={item} value={item}>{item}</option>
@@ -543,7 +528,7 @@ export default function AddProductForm() {
 
                 <section className={`${THEME.card} space-y-3`}>
                     <button type="submit" disabled={isSubmitting} className={THEME.submitBtn}>
-                        {isSubmitting ? TEXT.publishing : TEXT.publish}
+                        {isSubmitting ? TEXT.publishing : (isEdit ? TEXT.saveChanges : TEXT.publish)}
                     </button>
                     <button
                         type="button"

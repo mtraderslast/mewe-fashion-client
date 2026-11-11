@@ -40,8 +40,36 @@ export const SIZE_SUGGESTIONS = {
     "kids-shoes": ["21", "22", "23", "24", "25", "26", "27", "28"],
 };
 
+export const VOLUME_SUGGESTIONS = ["30ml", "50ml", "100ml", "200ml", "100g"];
+
+export const VARIANT_AXIS = {
+    Shirt: { groupKey: "color", optionKey: "size", groupLabel: "Color", optionLabel: "Size", groupPlaceholder: "e.g. Navy", optionPlaceholder: "e.g. M" },
+    Pant: { groupKey: "color", optionKey: "size", groupLabel: "Color", optionLabel: "Size", groupPlaceholder: "e.g. Black", optionPlaceholder: "e.g. 32" },
+    Shoes: { groupKey: "color", optionKey: "size", groupLabel: "Color", optionLabel: "Size", groupPlaceholder: "e.g. White", optionPlaceholder: "e.g. 42" },
+    Dress: { groupKey: "color", optionKey: "size", groupLabel: "Color", optionLabel: "Size", groupPlaceholder: "e.g. Maroon", optionPlaceholder: "e.g. M" },
+    Burqa: { groupKey: "color", optionKey: "size", groupLabel: "Color", optionLabel: "Size", groupPlaceholder: "e.g. Black", optionPlaceholder: "e.g. 54" },
+    Hijab: { groupKey: "color", optionKey: null, groupLabel: "Color", optionLabel: null, groupPlaceholder: "e.g. Dusty Pink" },
+    Watch: { groupKey: "color", optionKey: null, groupLabel: "Color", optionLabel: null, groupPlaceholder: "e.g. Brown Leather" },
+    Perfume: { groupKey: "scent", optionKey: "volume", groupLabel: "Scent", optionLabel: "Volume", groupPlaceholder: "e.g. Noir Oud", optionPlaceholder: "e.g. 100ml" },
+    "Facial Wash": { groupKey: "volume", optionKey: null, groupLabel: "Volume", optionLabel: null, groupPlaceholder: "e.g. 100ml" },
+    Moisturizer: { groupKey: "volume", optionKey: null, groupLabel: "Volume", optionLabel: null, groupPlaceholder: "e.g. 50ml" },
+    "Baby Cream": { groupKey: "volume", optionKey: null, groupLabel: "Volume", optionLabel: null, groupPlaceholder: "e.g. 100g" },
+    "kids-shirt": { groupKey: "color", optionKey: "size", groupLabel: "Color", optionLabel: "Size", groupPlaceholder: "e.g. Yellow", optionPlaceholder: "e.g. 4-5Y" },
+    "kids-pant": { groupKey: "color", optionKey: "size", groupLabel: "Color", optionLabel: "Size", groupPlaceholder: "e.g. Navy", optionPlaceholder: "e.g. 6-7Y" },
+    "kids-shoes": { groupKey: "color", optionKey: "size", groupLabel: "Color", optionLabel: "Size", groupPlaceholder: "e.g. Blue", optionPlaceholder: "e.g. 24" },
+};
+
 export const formatSubCategory = (value) =>
     SUB_CATEGORY_LABELS[value] || value;
 
 export const getVariantFields = (subCategory) =>
     VARIANT_FIELDS[subCategory] || [];
+
+export const getVariantAxis = (subCategory) =>
+    VARIANT_AXIS[subCategory] || null;
+
+export const getOptionSuggestions = (subCategory, key) => {
+    if (key === "size") return SIZE_SUGGESTIONS[subCategory] || [];
+    if (key === "volume") return VOLUME_SUGGESTIONS;
+    return [];
+};

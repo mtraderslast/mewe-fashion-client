@@ -3,6 +3,14 @@ const toNumber = (value) => {
     return Number.isFinite(n) ? n : 0;
 };
 
+export const formatPrice = (value) => {
+    const amount = toNumber(value);
+    return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+    }).format(amount);
+};
+
 export const getUnitPricing = (product, variant = null) => {
     const variantPrice = toNumber(variant?.price);
     const variantDiscount = toNumber(variant?.discountPrice);

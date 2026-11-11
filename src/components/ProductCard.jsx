@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { formatPrice } from '@/lib/pricing';
 
 export default function ProductCard({
     product,
@@ -56,12 +57,12 @@ export default function ProductCard({
             {/* Price Details */}
             <div className="p-3 sm:p-4 pt-0 flex items-center gap-2">
                 <span className={THEME.currentPrice}>
-                    ৳{product.discountPrice ?? product.price}
+                    {formatPrice(product.discountPrice ?? product.price)}
                 </span>
 
                 {hasDiscount && (
                     <span className={THEME.oldPrice}>
-                        ৳{product.price}
+                        {formatPrice(product.price)}
                     </span>
                 )}
             </div>

@@ -1,6 +1,6 @@
 export const PRODUCT_LIST_PATH = "/product";
 
-const FILTER_KEYS = ["search", "category", "subCategory", "brand", "showInDiscount"];
+const FILTER_KEYS = ["search", "category", "subCategory", "brand", "showInDiscount", "page"];
 
 const getParam = (value) => {
     if (Array.isArray(value)) return (value[0] || "").trim();
@@ -27,6 +27,7 @@ export function readProductFilters(searchParams = {}) {
         subCategory: getParam(searchParams.subCategory),
         brand: getParam(searchParams.brand),
         showInDiscount: getParam(searchParams.showInDiscount),
+        page: getParam(searchParams.page),
     };
 }
 
@@ -73,9 +74,15 @@ const formatSubCategory = (value) =>
         .join(" ");
 
 export function getProductListHeading(filters = {}) {
-    const { search, category, subCategory } = filters;
+    const { search, category, subCategory, showInDiscount } = filters;
+    const isOffer = showInDiscount === "true";
 
     if (search) return `Search results for "${search}"`;
+    if (isOffer && category && subCategory) {
+        return `${category} · ${formatSubCategory(subCategory)} Offers`;
+    }
+    if (isOffer && category) return `${category} Offers`;
+    if (isOffer) return "Special Offers";
     if (category && subCategory) return `${category} · ${formatSubCategory(subCategory)}`;
     if (category) return `${category} Fashion`;
     if (subCategory) return formatSubCategory(subCategory);

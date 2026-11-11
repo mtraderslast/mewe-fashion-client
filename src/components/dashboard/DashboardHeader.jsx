@@ -16,15 +16,22 @@ const THEME = {
     logoutBtn: "p-2 rounded-xl text-[#6B7873] hover:bg-white hover:text-rose-600 transition-colors",
 };
 
+const TEXT = {
+    fallbackTitle: "Dashboard",
+    logout: "Logout",
+};
+
 const PAGE_META = {
     "/dashboard": { title: "Overview", subtitle: "Store performance at a glance" },
     "/dashboard/products": { title: "Products", subtitle: "Manage the MEWE catalog" },
     "/dashboard/products/add": { title: "Add Product", subtitle: "Create a new listing" },
 };
 
-const TEXT = {
-    fallbackTitle: "Dashboard",
-    logout: "Logout",
+const getPageMeta = (pathname) => {
+    if (pathname?.includes("/dashboard/products/") && pathname.endsWith("/edit")) {
+        return { title: "Edit Product", subtitle: "Update an existing listing" };
+    }
+    return PAGE_META[pathname] || { title: TEXT.fallbackTitle, subtitle: "" };
 };
 
 export default function DashboardHeader({ onMenuClick }) {
@@ -32,7 +39,7 @@ export default function DashboardHeader({ onMenuClick }) {
     const router = useRouter();
     const { data: session } = authClient.useSession();
     const user = session?.user;
-    const meta = PAGE_META[pathname] || { title: TEXT.fallbackTitle, subtitle: "" };
+    const meta = getPageMeta(pathname);
 
     const handleLogout = async () => {
         await authClient.signOut();
