@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, Plus, Store, X } from "lucide-react";
+import { ClipboardList, LayoutDashboard, Package, Plus, Store, X } from "lucide-react";
 
 const THEME = {
     aside: "fixed inset-y-0 left-0 z-40 w-72 bg-[#12201D] text-[#D7E4DF] flex flex-col transition-transform duration-300 lg:static lg:translate-x-0",
@@ -30,6 +30,7 @@ const TEXT = {
     overview: "Overview",
     products: "Products",
     addProduct: "Add Product",
+    orders: "Orders",
     viewStore: "View storefront",
 };
 
@@ -37,9 +38,18 @@ const NAV_ITEMS = [
     { href: "/dashboard", label: TEXT.overview, icon: LayoutDashboard },
     { href: "/dashboard/products", label: TEXT.products, icon: Package },
     { href: "/dashboard/products/add", label: TEXT.addProduct, icon: Plus },
+    { href: "/dashboard/orders", label: TEXT.orders, icon: ClipboardList },
 ];
 
-const isActive = (pathname, href) => pathname === href;
+const isActive = (pathname, href) => {
+    if (href === "/dashboard/products") {
+        return pathname === href || /\/dashboard\/products\/[^/]+\/edit$/.test(pathname);
+    }
+    if (href === "/dashboard/orders") {
+        return pathname === href || pathname.startsWith("/dashboard/orders/");
+    }
+    return pathname === href;
+};
 
 export default function DashboardSidebar({ open, onClose }) {
     const pathname = usePathname();

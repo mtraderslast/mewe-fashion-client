@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LayoutDashboard, LogOut, UserRound } from "lucide-react";
+import { LayoutDashboard, LogOut, PackageSearch, UserRound } from "lucide-react";
 import { buildProductHref } from "@/lib/productQuery";
 import { useCartStore } from "@/lib/store/useCartStore";
 import { authClient } from "@/lib/auth-client";
@@ -35,6 +35,7 @@ const NAV_TEXT = {
     login: "Login",
     profile: "Profile",
     dashboard: "Dashboard",
+    track: "Track order",
     logout: "Logout",
 };
 
@@ -176,6 +177,14 @@ export default function Navbar() {
                                         >
                                             <UserRound size={16} />
                                             <span>{NAV_TEXT.profile}</span>
+                                        </Link>
+                                        <Link
+                                            href="/track-order"
+                                            onClick={() => setIsUserMenuOpen(false)}
+                                            className={THEME.menuItem}
+                                        >
+                                            <PackageSearch size={16} />
+                                            <span>{NAV_TEXT.track}</span>
                                         </Link>
 
                                         {isAdmin && (

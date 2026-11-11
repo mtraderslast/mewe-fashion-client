@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { buildProductHref } from '@/lib/productQuery';
 
 const THEME = {
     sectionBg: "w-full my-0 py-0",
@@ -11,7 +12,7 @@ const THEME = {
 const BANNER_DATA = {
     image: "/offer-banner.png",
     alt: "Exclusive Promotional Offer",
-    href: "/products?offer=true",
+    href: buildProductHref({ showInDiscount: true }),
     buttonText: "Shop Now",
     subtitle: "Special Discount Offer",
 };

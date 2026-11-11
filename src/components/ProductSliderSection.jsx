@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import ProductCard from './ProductCard';
@@ -21,8 +19,6 @@ const THEME = {
 };
 
 export default function ProductSliderSection({ title = "Mens Fashion", products = [], viewAllHref = PRODUCT_LIST_PATH }) {
-    const [scrollPosition, setScrollPosition] = useState(0);
-
     const handleScroll = (direction) => {
         const container = document.getElementById(`slider-${title.replace(/\s+/g, '-').toLowerCase()}`);
         if (container) {
@@ -68,7 +64,11 @@ export default function ProductSliderSection({ title = "Mens Fashion", products 
                     className="flex items-stretch gap-4 sm:gap-6 overflow-x-auto scrollbar-none pb-4 pt-1 snap-x snap-mandatory scroll-smooth"
                 >
                     {products.map((product) => (
-                        <ProductCard key={product.slug} product={product} THEME={THEME} />
+                        <ProductCard
+                            key={product._id || product.slug}
+                            product={product}
+                            THEME={THEME}
+                        />
                     ))}
                 </div>
 

@@ -2,7 +2,8 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 
-const STORAGE_KEY = "mewe-cart";
+const STORAGE_KEY = "mewe-fashion-cart";
+const LEGACY_STORAGE_KEYS = ["mewe-cart"];
 
 const listeners = new Set();
 
@@ -22,12 +23,27 @@ const emit = () => {
     listeners.forEach((listener) => listener());
 };
 
+const parseItems = (raw) => {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+};
+
 const loadItems = () => {
     if (typeof window === "undefined") return [];
 
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const current = localStorage.getItem(STORAGE_KEY);
+        if (current) return parseItems(current);
+
+        for (const key of LEGACY_STORAGE_KEYS) {
+            const legacy = localStorage.getItem(key);
+            if (!legacy) continue;
+            localStorage.setItem(STORAGE_KEY, legacy);
+            localStorage.removeItem(key);
+            return parseItems(legacy);
+        }
+
+        return [];
     } catch {
         return [];
     }
@@ -67,7 +83,13 @@ const openCart = () => setState({ isOpen: true });
 
 const closeCart = () => setState({ isOpen: false });
 
-const addToCart = ({ slug, quantity = 1, selectedAttributes = {} }) => {
+const addToCart = ({
+    slug,
+    productId,
+    quantity = 1,
+    selectedAttributes = {},
+    open = true,
+}) => {
     if (!slug || quantity < 1) return;
 
     const cartItemId = makeCartItemId(slug, selectedAttributes);
@@ -79,9 +101,18 @@ const addToCart = ({ slug, quantity = 1, selectedAttributes = {} }) => {
                 ? { ...item, quantity: item.quantity + quantity }
                 : item
         )
-        : [...state.items, { cartItemId, slug, quantity, selectedAttributes }];
+        : [
+            ...state.items,
+            {
+                cartItemId,
+                slug,
+                productId: productId || "",
+                quantity,
+                selectedAttributes,
+            },
+        ];
 
-    setState({ items, isOpen: true });
+    setState({ items, isOpen: open ? true : state.isOpen });
 };
 
 const updateQuantity = (cartItemId, quantity) => {
@@ -103,25 +134,28 @@ const removeFromCart = (cartItemId) => {
     });
 };
 
-const getStore = () => ({
-    items: state.items,
-    isOpen: state.isOpen,
+const clearCart = () => setState({ items: [] });
+
+const storeApi = {
     openCart,
     closeCart,
     addToCart,
     updateQuantity,
     removeFromCart,
+    clearCart,
     getTotalItems,
+};
+
+const getStore = () => ({
+    items: state.items,
+    isOpen: state.isOpen,
+    ...storeApi,
 });
 
 const SERVER_SNAPSHOT = {
     items: [],
     isOpen: false,
-    openCart,
-    closeCart,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
+    ...storeApi,
     getTotalItems: () => 0,
 };
 

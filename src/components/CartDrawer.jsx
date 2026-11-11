@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { X, Plus, Minus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/lib/store/useCartStore";
-import { getUnitPricing, findMatchingVariant } from "@/lib/pricing";
-import { allProducts } from "@/data/product";
+import { useCartLines } from "@/lib/useCartLines";
+import { formatPrice } from "@/lib/pricing";
 
 const CART_THEME = {
     overlayBg: "bg-slate-950/60 backdrop-blur-xs",
@@ -38,57 +37,26 @@ const CART_TEXT = {
     shippingNote: "Calculated at checkout",
     checkoutBtn: "Proceed to Checkout",
     continueShopping: "Continue Shopping",
+    unavailable: "This item is no longer available",
+    loading: "Loading your bag...",
 };
 
-const getProductBySlug = (slug) => allProducts.find((product) => product.slug === slug);
-
 export default function CartDrawer() {
-    const [mounted, setMounted] = useState(false);
-
     const items = useCartStore((state) => state.items);
     const isOpen = useCartStore((state) => state.isOpen);
     const closeCart = useCartStore((state) => state.closeCart);
     const updateQuantity = useCartStore((state) => state.updateQuantity);
     const removeFromCart = useCartStore((state) => state.removeFromCart);
     const totalCount = useCartStore((state) => state.getTotalItems());
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "unset";
-        }
-        return () => {
-            document.body.style.overflow = "unset";
-        };
-    }, [isOpen]);
-
-    const getItemFinalPrice = (cartItem, product) => {
-        if (!product) return 0;
-        const matchedVariant = findMatchingVariant(product, cartItem.selectedAttributes);
-        return getUnitPricing(product, matchedVariant).finalPrice;
-    };
-
-    const subtotal = useMemo(() => {
-        return items.reduce((total, cartItem) => {
-            const product = getProductBySlug(cartItem.slug);
-            const finalPrice = getItemFinalPrice(cartItem, product);
-            return total + finalPrice * cartItem.quantity;
-        }, 0);
-    }, [items]);
-
-    if (!mounted) return null;
+    const { lines, loading, subtotal } = useCartLines(items);
 
     return (
         <div
             className={`fixed inset-0 z-[70] transition-opacity duration-300 ${isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
             aria-labelledby="slide-over-title"
             role="dialog"
-            aria-modal="true"
+            aria-modal={isOpen}
+            aria-hidden={!isOpen}
         >
             <div className={`fixed inset-0 transition-opacity duration-300 ${CART_THEME.overlayBg}`} onClick={closeCart} />
 
@@ -121,21 +89,39 @@ export default function CartDrawer() {
                                     {CART_TEXT.startShopping}
                                 </button>
                             </div>
+                        ) : loading ? (
+                            <div className="space-y-3">
+                                <p className={`text-xs ${CART_THEME.subText}`}>{CART_TEXT.loading}</p>
+                                {items.map((item) => (
+                                    <div key={item.cartItemId} className={`h-28 rounded-2xl animate-pulse ${CART_THEME.cardBg}`} />
+                                ))}
+                            </div>
                         ) : (
-                            items.map((cartItem) => {
-                                const product = getProductBySlug(cartItem.slug);
-                                if (!product) return null;
+                            lines.map((line) => {
+                                const product = line.product;
+                                const variantEntries = Object.entries(line.selectedAttributes || {}).filter(([, value]) => Boolean(value));
 
-                                const variantEntries = Object.entries(cartItem.selectedAttributes || {});
-                                const finalPrice = getItemFinalPrice(cartItem, product);
+                                if (!product) {
+                                    return (
+                                        <div key={line.cartItemId} className={`flex gap-3.5 p-3 rounded-2xl ${CART_THEME.cardBg}`}>
+                                            <div className="w-20 h-24 rounded-xl bg-slate-100 shrink-0" />
+                                            <div className="flex-1 flex items-center justify-between gap-2">
+                                                <p className={`text-xs ${CART_THEME.subText}`}>{CART_TEXT.unavailable}</p>
+                                                <button type="button" onClick={() => removeFromCart(line.cartItemId)} className={`transition-colors p-1 ${CART_THEME.deleteIcon}`}>
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                }
 
                                 return (
-                                    <div key={cartItem.cartItemId} className={`flex gap-3.5 p-3 rounded-2xl ${CART_THEME.cardBg}`}>
+                                    <div key={line.cartItemId} className={`flex gap-3.5 p-3 rounded-2xl ${CART_THEME.cardBg}`}>
                                         <Link href={`/product/${product.slug}`} onClick={closeCart} className="relative w-20 h-24 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200">
                                             <img
                                                 src={product.images?.[0] || "/placeholder.jpg"}
                                                 alt={product.title || "Product"}
-                                                className="w-full h-full object-cover object-center"
+                                                className="w-full h-full object-contain object-center"
                                             />
                                         </Link>
 
@@ -145,7 +131,7 @@ export default function CartDrawer() {
                                                     <Link href={`/product/${product.slug}`} onClick={closeCart}>
                                                         <h3 className={`text-xs sm:text-sm font-semibold line-clamp-1 ${CART_THEME.primaryText}`}>{product.title}</h3>
                                                     </Link>
-                                                    <button type="button" onClick={() => removeFromCart(cartItem.cartItemId)} className={`transition-colors p-1 ${CART_THEME.deleteIcon}`}>
+                                                    <button type="button" onClick={() => removeFromCart(line.cartItemId)} className={`transition-colors p-1 ${CART_THEME.deleteIcon}`}>
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
@@ -161,21 +147,21 @@ export default function CartDrawer() {
 
                                             <div className="flex items-center justify-between pt-2">
                                                 <div className="flex items-center border border-slate-200 rounded-lg bg-slate-50">
-                                                    <button type="button" onClick={() => updateQuantity(cartItem.cartItemId, cartItem.quantity - 1)} className="p-1 hover:bg-slate-200 text-slate-700 rounded-l-lg transition-colors">
+                                                    <button type="button" onClick={() => updateQuantity(line.cartItemId, line.quantity - 1)} className="p-1 hover:bg-slate-200 text-slate-700 rounded-l-lg transition-colors">
                                                         <Minus className="w-3 h-3" />
                                                     </button>
-                                                    <span className={`w-7 text-center text-xs font-semibold ${CART_THEME.primaryText}`}>{cartItem.quantity}</span>
-                                                    <button type="button" onClick={() => updateQuantity(cartItem.cartItemId, cartItem.quantity + 1)} className="p-1 hover:bg-slate-200 text-slate-700 rounded-r-lg transition-colors">
+                                                    <span className={`w-7 text-center text-xs font-semibold ${CART_THEME.primaryText}`}>{line.quantity}</span>
+                                                    <button type="button" onClick={() => updateQuantity(line.cartItemId, line.quantity + 1)} className="p-1 hover:bg-slate-200 text-slate-700 rounded-r-lg transition-colors">
                                                         <Plus className="w-3 h-3" />
                                                     </button>
                                                 </div>
 
                                                 <div className="text-right flex flex-col">
                                                     <span className={`text-sm font-bold ${CART_THEME.primaryText}`}>
-                                                        ৳{(finalPrice * cartItem.quantity).toLocaleString()}
+                                                        {formatPrice(line.lineTotal)}
                                                     </span>
                                                     <span className={`text-[10px] ${CART_THEME.subText}`}>
-                                                        ৳{finalPrice.toLocaleString()} x {cartItem.quantity}
+                                                        {formatPrice(line.unitPrice)} x {line.quantity}
                                                     </span>
                                                 </div>
                                             </div>
@@ -192,7 +178,7 @@ export default function CartDrawer() {
                                 <div className="flex items-center justify-between text-sm">
                                     <span className={CART_THEME.subText}>{CART_TEXT.subtotalLabel}</span>
                                     <span className={`text-base font-bold ${CART_THEME.primaryText}`}>
-                                        ৳{subtotal.toLocaleString()}
+                                        {formatPrice(subtotal)}
                                     </span>
                                 </div>
                                 <div className={`flex items-center justify-between text-xs ${CART_THEME.subText}`}>
