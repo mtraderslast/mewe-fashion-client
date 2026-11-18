@@ -103,7 +103,13 @@ export default function DashboardOrdersPage() {
             await deleteOrder(order._id);
             setOrders((prev) => prev.filter((item) => item._id !== order._id));
             setTotal((prev) => Math.max(0, prev - 1));
-            Swal.fire({ icon: "success", title: TEXT.deleted, timer: 1200, showConfirmButton: false });
+            Swal.fire({
+                icon: "success",
+                title: TEXT.deleted,
+                timer: 1000,
+                showConfirmButton: false,
+                timerProgressBar: true,
+            });
         } catch (err) {
             Swal.fire({
                 icon: "error",

@@ -88,12 +88,12 @@ export default function DashboardProductsPage() {
             await deleteProduct(product._id);
             setProducts((prev) => prev.filter((item) => item._id !== product._id));
             setTotal((prev) => Math.max(0, prev - 1));
-            await Swal.fire({
+            Swal.fire({
                 icon: "success",
                 title: TEXT.deletedTitle,
-                confirmButtonColor: "#0d9488",
-                timer: 1400,
+                timer: 1000,
                 showConfirmButton: false,
+                timerProgressBar: true,
             });
         } catch (err) {
             Swal.fire({

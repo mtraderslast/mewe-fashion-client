@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Mail, MessageSquare, Send } from "lucide-react";
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 
 const FOOTER_COLORS = {
@@ -32,11 +32,11 @@ const FOOTER_TEXT = {
 
 const FOOTER_LINKS = {
     shop: [
-        { label: "All Products", href: "/category/all-products" },
-        { label: "New Arrivals", href: "/category/new-arrivals" },
-        { label: "Women's Fashion", href: "/category/women" },
-        { label: "Men's Fashion", href: "/category/men" },
-        { label: "Accessories", href: "/category/accessories" },
+        { label: "All Products", href: "/product" },
+        { label: "Discount Items", href: "/product?showInDiscount=true" },
+        { label: "Women's Fashion", href: "/product?category=Womens" },
+        { label: "Men's Fashion", href: "/product?category=Mens" },
+        { label: "Kids Fashion", href: "/product?category=Kids" },
     ],
     support: [
         { label: "Contact Us", href: "/contact" },
@@ -47,7 +47,6 @@ const FOOTER_LINKS = {
     ],
     company: [
         { label: "About MEWE", href: "/about" },
-        { label: "Our Collections", href: "/collections" },
         { label: "Privacy Policy", href: "/privacy-policy" },
         { label: "Terms & Conditions", href: "/terms-and-conditions" },
     ],
@@ -59,19 +58,19 @@ const FOOTER_LINKS = {
 
 const FOOTER_SOCIALS = [
     {
-        name: "Facebook",
-        icon: FaFacebook,
-        href: "https://facebook.com",
+        name: "Message",
+        icon: MessageSquare,
+        href: "https://wa.me/13163617579",
     },
     {
-        name: "Instagram",
-        icon: FaInstagram,
-        href: "https://instagram.com",
+        name: "Telegram",
+        icon: Send,
+        href: "https://t.me/Mtradersla_bot",
     },
     {
-        name: "YouTube",
-        icon: FaYoutube,
-        href: "https://youtube.com",
+        name: "Mail",
+        icon: Mail,
+        href: "mailto:hello@mtraderslastllc.com",
     },
 ];
 
@@ -203,7 +202,9 @@ export default function Footer() {
                         <span className="font-semibold text-[var(--footer-heading)]">
                             {FOOTER_TEXT.brand.name} {FOOTER_TEXT.brand.suffix}
                         </span>
-                        . {FOOTER_TEXT.copyright}
+                        {" · a brand of "}
+                        <span className="font-semibold text-[var(--footer-heading)]">M Traders Last LLC</span>
+                        {`. ${FOOTER_TEXT.copyright}`}
                     </p>
 
                     <p className="hidden text-xs text-[var(--footer-muted)] xl:block">
